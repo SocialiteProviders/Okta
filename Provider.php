@@ -50,9 +50,17 @@ class Provider extends AbstractProvider implements ProviderInterface
     /**
      * {@inheritdoc}
      */
+    protected function getAuthServerId()
+    {
+        return $this->getConfig('auth_server_id', 'default');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public static function additionalConfigKeys()
     {
-        return ['base_url'];
+        return ['base_url', 'auth_server_id'];
     }
 
     /**
@@ -60,7 +68,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getAuthUrl($state)
     {
-        return $this->buildAuthUrlFromBase($this->getOktaUrl().'/oauth2/v1/authorize', $state);
+        return $this->buildAuthUrlFromBase($this->getOktaUrl().'/oauth2/'.$this->getAuthServerId().'/v1/authorize', $state);
     }
 
     /**
@@ -68,7 +76,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getTokenUrl()
     {
-        return $this->getOktaUrl().'/oauth2/v1/token';
+        return $this->getOktaUrl().'/oauth2/'.$this->getAuthServerId().'/v1/token';
     }
 
     /**
@@ -76,7 +84,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getUserByToken($token)
     {
-        $response = $this->getHttpClient()->get($this->getOktaUrl().'/oauth2/v1/userinfo', [
+        $response = $this->getHttpClient()->get($this->getOktaUrl().'/oauth2/'.$this->getAuthServerId().'/v1/userinfo', [
             'headers' => [
                 'Authorization' => 'Bearer '.$token,
             ],
