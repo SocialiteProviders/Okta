@@ -17,15 +17,10 @@ class Provider extends AbstractProvider
      * @see https://developer.okta.com/docs/reference/api/oidc/#scopes
      */
     public const SCOPE_OPENID = 'openid';
-
     public const SCOPE_PROFILE = 'profile';
-
     public const SCOPE_EMAIL = 'email';
-
     public const SCOPE_ADDRESS = 'address';
-
     public const SCOPE_PHONE = 'phone';
-
     public const SCOPE_OFFLINE_ACCESS = 'offline_access';
 
     /**
@@ -56,7 +51,7 @@ class Provider extends AbstractProvider
     {
         $authServerId = (string) $this->getConfig('auth_server_id');
 
-        return $authServerId === '' ? $authServerId : $authServerId.'/';
+        return $authServerId === '' ? $authServerId : '/'.$authServerId;
     }
 
     /**
@@ -66,7 +61,7 @@ class Provider extends AbstractProvider
      */
     protected function getOktaServerUrl(): string
     {
-        return $this->getOktaUrl().'/oauth2/'.$this->getAuthServerId();
+        return $this->getOktaUrl().$this->getAuthServerId();
     }
 
     /**
@@ -82,7 +77,7 @@ class Provider extends AbstractProvider
      */
     protected function getAuthUrl($state)
     {
-        return $this->buildAuthUrlFromBase($this->getOktaServerUrl().'v1/authorize', $state);
+        return $this->buildAuthUrlFromBase($this->getOktaServerUrl().'/authorize', $state);
     }
 
     /**
@@ -90,7 +85,7 @@ class Provider extends AbstractProvider
      */
     protected function getTokenUrl()
     {
-        return $this->getOktaServerUrl().'v1/token';
+        return $this->getOktaServerUrl().'/oauth/token';
     }
 
     /**
@@ -98,7 +93,7 @@ class Provider extends AbstractProvider
      */
     protected function getUserByToken($token)
     {
-        $response = $this->getHttpClient()->get($this->getOktaServerUrl().'v1/userinfo', [
+        $response = $this->getHttpClient()->get($this->getOktaServerUrl().'/userinfo', [
             RequestOptions::HEADERS => [
                 'Authorization' => 'Bearer '.$token,
             ],
@@ -110,12 +105,13 @@ class Provider extends AbstractProvider
     /**
      * Get the client access token response.
      *
-     * @param  array|string  $scopes
+     * @param array|string $scopes
+     *
      * @return array
      */
     public function getClientAccessTokenResponse($scopes = null)
     {
-        $scopes ??= $this->getScopes();
+        $scopes = $scopes ?? $this->getScopes();
         $response = $this->getHttpClient()->post($this->getTokenUrl(), [
             RequestOptions::AUTH        => [$this->clientId, $this->clientSecret],
             RequestOptions::HEADERS     => ['Cache-Control' => 'no-cache'],
@@ -129,7 +125,8 @@ class Provider extends AbstractProvider
     }
 
     /**
-     * @param  string  $refreshToken
+     * @param string $refreshToken
+     *
      * @return array
      */
     public function getRefreshTokenResponse(string $refreshToken)
@@ -168,9 +165,20 @@ class Provider extends AbstractProvider
     }
 
     /**
-     * @param  string  $idToken
-     * @param  string|null  $redirectUri
-     * @param  string|null  $state
+     * {@inheritdoc}
+     */
+    protected function getTokenFields($code)
+    {
+        return array_merge(parent::getTokenFields($code), [
+            'grant_type' => 'authorization_code',
+        ]);
+    }
+
+    /**
+     * @param string      $idToken
+     * @param string|null $redirectUri
+     * @param string|null $state
+     *
      * @return string
      */
     public function getLogoutUrl(string $idToken, string $redirectUri = null, string $state = null)
@@ -187,8 +195,9 @@ class Provider extends AbstractProvider
     }
 
     /**
-     * @param  string  $token
-     * @param  string  $hint
+     * @param string $token
+     * @param string $hint
+     *
      * @return \Psr\Http\Message\ResponseInterface
      */
     public function revokeToken(string $token, string $hint = 'access_token')
@@ -206,8 +215,9 @@ class Provider extends AbstractProvider
     }
 
     /**
-     * @param  string  $token
-     * @param  string  $hint
+     * @param string $token
+     * @param string $hint
+     *
      * @return array
      */
     public function introspectToken(string $token, string $hint = 'access_token')
